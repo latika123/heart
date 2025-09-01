@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twinkling Particle Heart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        canvas {
+            background-color: #000;
+        }
+    </style>
+</head>
+<body class="bg-black flex flex-col items-center justify-center min-h-screen">
+    <canvas id="heartCanvas" class="rounded-lg shadow-lg"></canvas>
+
+    <script>
+        window.onload = function() {
+            const canvas = document.getElementById('heartCanvas');
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+            
+            // Increased the particle count for a denser effect
+            const particleCount = 5000;
+            const particles = [];
+            const heartPath = new Path2D();
+            
+            // Function to define the heart shape path using a more accurate formula
+            function createHeartPath() {
+                const scale = Math.min(width, height) * 0.25;
+                const x = width / 2;
+                const y = height / 2 + scale * 0.5;
+                
+                // Reset the path before drawing
+                heartPath.moveTo(x, y + scale);
+                
+                // Left side of the heart
+                heartPath.bezierCurveTo(
+                    x + scale * 2.0, y - scale * 0.5,
+                    x + scale * 1.0, y - scale * 2,
+                    x, y - scale * 1
+                );
+                
+                // Right side of the heart
+                heartPath.bezierCurveTo(
+                    x - scale * 1.0, y - scale * 2,
+                    x - scale * 2.0, y - scale * 0.5,
+                    x, y + scale
+                );
+            }
+
+            // Function to check if a point is inside the heart shape
+            function isPointInHeart(x, y) {
+                return ctx.isPointInPath(heartPath, x, y);
+            }
+
+            // Particle class
+            class Particle {
+                constructor() {
+                    let x, y;
+                    do {
+                        x = Math.random() * width;
+                        y = Math.random() * height;
+                    } while (!isPointInHeart(x, y));
+                    this.x = x;
+                    this.y = y;
+                    this.size = Math.random() * 3 + 1; // Slightly increased particle size
+                    this.initialOpacity = Math.random() * 0.5 + 0.5;
+                    this.opacity = this.initialOpacity;
+                    this.fadeSpeed = Math.random() * 0.05 + 0.02; 
+                    this.isFadingOut = Math.random() > 0.5;
+                }
+
+                update() {
+                    if (this.isFadingOut) {
+                        this.opacity -= this.fadeSpeed;
+                        if (this.opacity <= 0) {
+                            this.isFadingOut = false;
+                            this.opacity = 0;
+                        }
+                    } else {
+                        this.opacity += this.fadeSpeed;
+                        if (this.opacity >= this.initialOpacity) {
+                            this.isFadingOut = true;
+                            this.opacity = this.initialOpacity;
+                        }
+                    }
+                }
+
+                draw() {
+                    // Set up the glow effect
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = `rgba(255, 69, 0, 1)`;
+                    
+                    // The main particle color
+                    ctx.fillStyle = `rgba(255, 69, 0, ${this.opacity})`;
+                    ctx.fillRect(this.x, this.y, this.size, this.size);
+                }
+            }
+
+            // Initialization
+            createHeartPath();
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+
+            // Animation loop with a slow, smooth heartbeat
+            let time = 0;
+            const animate = () => {
+                // Clear canvas with a semi-transparent black for a trailing effect
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+
+                // Animate heartbeat scaling using a sine wave for a smoother effect
+                time += 0.01;
+                const heartbeatScale = 1 + Math.sin(time) * 0.1;
+                
+                // Save context state, apply scaling, and restore
+                ctx.save();
+                ctx.translate(width / 2, height / 2);
+                ctx.scale(heartbeatScale, heartbeatScale);
+                ctx.translate(-width / 2, -height / 2);
+
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+
+                ctx.restore();
+
+                requestAnimationFrame(animate);
+            };
+
+            // Handle window resizing
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                createHeartPath();
+            });
+
+            animate();
+        };
+    </script>
+</body>
+</html>
